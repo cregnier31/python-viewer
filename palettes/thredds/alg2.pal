@@ -1,0 +1,28 @@
+# Palette from Alastair Gemmell (by email on 6th November 2007
+0 0 0.4  #dark blue
+0 0 0.6
+0 0 0.8
+0 0 1.0  #blue
+0 0.2 1.0
+0 0.4 1.0
+0 0.6 1.0
+0 0.8 1.0
+0 1.0 1.0  #cyan
+0 1.0 0.8
+0 1.0 0.6 # ~ turquise
+0 1.0 0.4
+0 1.0 0   #green
+0.4 1.0 0
+0.6 1.0 0
+0.8 1.0 0.2 # ~ lime green
+1.0 1.0 0.4
+1.0 1.0 0.2
+1.0 1.0 0  #yellow
+1.0 0.8 0
+1.0 0.6 0  # ~ orange
+1.0 0.4 0
+1.0 0.2 0
+1.0 0 0  #red
+0.8 0 0
+0.6 0 0
+0.4 0 0  #dark red
