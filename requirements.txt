@@ -1,0 +1,4 @@
+matplotlib>=2.0.0
+numpy
+basemap=1.0.7
+owslib=0.14.0
