@@ -194,6 +194,12 @@ class CmemsProductDialog(QDialog):
         self.label_20 = QtGui.QLabel(self.groupBox_9)
         self.label_20.setGeometry(QtCore.QRect(380, 0, 31, 21))
         self.label_20.setObjectName(("label_20"))
+        self.checkBox_2 = QtGui.QCheckBox(self.groupBox_9)
+        self.checkBox_2.setGeometry(QtCore.QRect(150, 70, 94, 26))
+        self.checkBox_2.setObjectName("checkBox_2")
+        self.checkBox_3 = QtGui.QCheckBox(self.groupBox_9)
+        self.checkBox_3.setGeometry(QtCore.QRect(230, 70, 94, 26))
+        self.checkBox_3.setObjectName("checkBox_2")
         self.label_18 = QtGui.QLabel(self)
         self.label_18.setGeometry(QtCore.QRect(210, 730, 66, 21))
         self.label_18.setObjectName(("label_18"))
@@ -332,6 +338,8 @@ class CmemsProductDialog(QDialog):
         self.label_20.setText("Dpi")
         self.checkBox.setText("Add_vectors")
         self.checkBox.setEnabled(False)
+        self.checkBox_2.setText("Arc_proj")
+        self.checkBox_3.setText("Ant_proj")
         print "add text ok"
       #  list_area=['GLOBAL','ARCTIC','BAL','MED','IBI','NWS']
         list_area=['ARCTIC','BAL','GLOBAL','IBI','MED','NWS']
