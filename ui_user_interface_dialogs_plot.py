@@ -238,8 +238,22 @@ class CmemsProductDialog(QDialog):
         colorbar=str(self.comboBox_8.currentText())
         input_srs=str(self.comboBox_9.currentText())
         epsg_val=input_srs.split(':')[1]
-        m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
-                    urcrnrlon=xmax, llcrnrlat=ymin,resolution='l',epsg=epsg_val)   
+        ll_polar=False
+	if self.checkBox_2.isChecked() == True :
+	   print "Projection arctic"
+           epsg_val="3408"
+           m = Basemap(projection='npstere',boundinglat=ymin,lon_0=0,round=True,resolution='l')   
+           ll_polar=True
+	elif self.checkBox_3.isChecked() == True :
+           epsg_val="3409"
+	   print "Projection antarctic"
+           m = Basemap(projection='spstere',boundinglat=ymax,lon_0=180,round=True,resolution='l')   
+           ll_polar=True
+	else : 
+           m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
+                       urcrnrlon=xmax, llcrnrlat=ymin,resolution='l',epsg=epsg_val)   
+           print "cylindric projection"
+
         # ypixels not given, find by scaling xpixels by the map aspect ratio.
         ypixels = int(m.aspect*xpixels)
         style='boxfill/'+colorbar
@@ -249,9 +263,9 @@ class CmemsProductDialog(QDialog):
         p = pyproj.Proj(init="epsg:%s" % epsg_val, preserve_units=True)
         xmin,ymin = p(m.llcrnrlon,m.llcrnrlat)
         xmax,ymax = p(m.urcrnrlon,m.urcrnrlat)
-        print xmin,ymin,xmax,ymax
 
-        if epsg_val == '4326':
+        print xmin,xmax,ymin,ymax
+        if epsg_val == '4326' :
             xmin = (180./np.pi)*xmin; xmax = (180./np.pi)*xmax
             ymin = (180./np.pi)*ymin; ymax = (180./np.pi)*ymax
             print "Cylindric projection"
@@ -299,7 +313,11 @@ class CmemsProductDialog(QDialog):
         parallels=np.round(np.arange(ymin,ymax+xparallels/2,xparallels))
         m.drawparallels(parallels,labels=[1,0,0,0],fontsize=10,linewidth=0.2)
         meridians = np.round(np.arange(xmin,xmax+ymeridians/2,ymeridians))
-        m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
+        if ll_polar : 
+           print "meridians"
+           #m.drawmeridians(meridians[:-1],labels=[1,1,1,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
+        else :
+           m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
         plt.title(title,fontsize=font+4,y=1.05)
         plt.savefig('images/'+product+"_"+long_name+"_"+date_val+"_basemap.png",dpi=300,bbox_inches='tight')
         plt.show()
@@ -469,11 +487,11 @@ class CmemsProductDialog(QDialog):
         self.lineEdit_11.setText('300')
         formats=self.wms.getOperationByName('GetMap').formatOptions
         ind=0
-        for proj in projections : 
-            self.comboBox_9.addItem(str(proj))
-            if str(proj) != "EPSG:4326" : 
-                self.comboBox_9.model().item(ind).setEnabled(False)
-            ind+=1
+        for proj in projections :
+            if str(proj) == "EPSG:4326" or str(proj) == "EPSG:3408" or str(proj) == "EPSG:3409" : 
+               self.comboBox_9.addItem(str(proj))
+            #self.comboBox_9.model().item(ind).setEnabled(False)
+            #ind+=1
 
 
     def getXML(self,url_base):
