@@ -6,17 +6,18 @@ from PyQt4.QtGui import *
 from PyQt4 import QtGui, QtCore
 import cPickle
 import os,io,urllib2
-import netCDF4
 import time,sys
 import numpy as np
 import xml.etree.ElementTree as ET
 from mpl_toolkits.basemap import Basemap
+from mpl_toolkits.basemap import pyproj
 import matplotlib.pyplot as plt
 from matplotlib.image import imread
 import numpy as np 
 import matplotlib as mpl
 import matplotlib.cm as cm
 from tools import *
+import owslib
 
 #class CmemsProductDialog(QtGui.QMainWindow):
 class CmemsProductDialog(QDialog):
@@ -135,6 +136,9 @@ class CmemsProductDialog(QDialog):
         self.label_11 = QtGui.QLabel(self.groupBox_7)
         self.label_11.setGeometry(QtCore.QRect(20, 20, 51, 31))
         self.label_11.setObjectName(("label_11"))
+        self.checkBox = QtGui.QCheckBox(self.groupBox_7)
+        self.checkBox.setGeometry(QtCore.QRect(420, 20, 111, 26))
+        self.checkBox.setObjectName("checkBox")
         self.groupBox_8 = QtGui.QGroupBox(self)
         self.groupBox_8.setGeometry(QtCore.QRect(40, 580, 511, 141))
         self.groupBox_8.setTitle((""))
@@ -206,7 +210,6 @@ class CmemsProductDialog(QDialog):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def accept(self):
-        print "OK launch map command"
         day1=str(self.comboBox_5.currentText())
         hour1=str(self.comboBox_6.currentText())
         date_val=day1+hour1
@@ -223,15 +226,39 @@ class CmemsProductDialog(QDialog):
         rastermax=self.lineEdit_6.text()
         nb_colors=self.lineEdit_7.text()
         xpixels=float(self.lineEdit_8.text())
-        aspect=0.5
-        ypixels = int(aspect*xpixels)
         xparallels=int(self.lineEdit_9.text())
         ymeridians=int(self.lineEdit_10.text())
         dpi=int(self.lineEdit_11.text())
         colorbar=str(self.comboBox_8.currentText())
         input_srs=str(self.comboBox_9.currentText())
+        epsg_val=input_srs.split(':')[1]
+        m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
+                    urcrnrlon=xmax, llcrnrlat=ymin,resolution='l',epsg=epsg_val)   
+        # ypixels not given, find by scaling xpixels by the map aspect ratio.
+        ypixels = int(m.aspect*xpixels)
         style='boxfill/'+colorbar
         print input_srs
+        print epsg_val
+        # find the x,y values at the corner points.
+        p = pyproj.Proj(init="epsg:%s" % epsg_val, preserve_units=True)
+        xmin,ymin = p(m.llcrnrlon,m.llcrnrlat)
+        xmax,ymax = p(m.urcrnrlon,m.urcrnrlat)
+        print xmin,ymin,xmax,ymax
+
+        if epsg_val == '4326':
+            xmin = (180./np.pi)*xmin; xmax = (180./np.pi)*xmax
+            ymin = (180./np.pi)*ymin; ymax = (180./np.pi)*ymax
+            print "Cylindric projection"
+            print xmin,xmax,ymin,ymax
+        ##if self.projection in _cylproj:
+        ##    Dateline =\
+        ##       _geoslib.Point(self(180.,0.5*(self.llcrnrlat+self.urcrnrlat)))
+        ##       hasDateline = Dateline.within(self._boundarypolyxy)
+        ##    if hasDateline:
+        ##             msg=dedent("""
+        ##                        wmsimage cannot handle images that cross
+        ##                        the dateline for cylindrical projections.""")
+        ##    raise ValueError(msg)
         img = self.wms.getmap(layers=[variable],service='wms',bbox=(xmin,ymin,xmax,ymax),
                                   size=(int(xpixels),ypixels),
                                   format='image/png',
@@ -240,24 +267,24 @@ class CmemsProductDialog(QDialog):
                                   time=date_val,
                                   colorscalerange=rastermin+','+rastermax,numcolorbands=nb_colors,logscale=False,
                                   styles=[style])
-        image=imread(io.BytesIO(img.read()),format=format)
-        print 'ok'
-        ylabel=self.wms[variable].abstract
+        image=imread(io.BytesIO(img.read()),format='png')
+        if variable == "sea_water_velocity" :
+       #     long_name="magnitude"
+            ylabel="magnitude"
+        else :
+            ylabel=self.wms[variable].abstract
+
         long_name=self.wms[variable].title
         title=product+" - "+long_name+" "+" - "+date_val
-        epsg_val=input_srs.split(':')[1]
         file_pal='./palettes/thredds/'+colorbar+'.pal'
         my_cmap=compute_cmap(file_pal,colorbar)
         cm.register_cmap(name=colorbar, cmap=my_cmap)
-        font=16
+        font=10
         norm = mpl.colors.Normalize(vmin=float(rastermin), vmax=float(rastermax), clip=True) 
         # Plot figure 
         plt.figure(figsize=(20,12))
-        m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
-                    urcrnrlon=xmax, llcrnrlat=ymin,resolution='l',epsg=epsg_val)   
         m.drawcoastlines(color='lightgrey',linewidth=0.25)
         m.fillcontinents(color='lightgrey')
-
         cs=m.imshow(image,origin='upper',alpha=1,cmap=(cm.get_cmap(colorbar,int(nb_colors))),norm=norm)
         cb=plt.colorbar(cs,orientation='vertical',format='%4.2f',shrink=0.7)
         cb.ax.set_ylabel(ylabel, fontsize=int(font)+4)
@@ -268,7 +295,7 @@ class CmemsProductDialog(QDialog):
         meridians = np.round(np.arange(xmin,xmax+ymeridians/2,ymeridians))
         m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
         plt.title(title,fontsize=font+4,y=1.05)
-        plt.savefig(product+"_"+long_name+"_"+date_val+"_basemap.png",dpi=300,bbox_inches='tight')
+        plt.savefig('images/'+product+"_"+long_name+"_"+date_val+"_basemap.png",dpi=300,bbox_inches='tight')
         plt.show()
        ## except Exception, e:
        ##     print "error"
@@ -303,6 +330,8 @@ class CmemsProductDialog(QDialog):
         self.label_18.setText("Xparallels")
         self.label_19.setText("Ymeridians")
         self.label_20.setText("Dpi")
+        self.checkBox.setText("Add_vectors")
+        self.checkBox.setEnabled(False)
         print "add text ok"
       #  list_area=['GLOBAL','ARCTIC','BAL','MED','IBI','NWS']
         list_area=['ARCTIC','BAL','GLOBAL','IBI','MED','NWS']
@@ -328,8 +357,7 @@ class CmemsProductDialog(QDialog):
                 if str(frame) in key :
                     list_glo.append(str(key))
         ind=0
-        print "populate combobox 2"
-        print "Frame %s " %(frame)
+        #print "Frame %s " %(frame)
         for key in self.dict_prod.keys():
             if str(frame) == "BAL":
                 frame1="_BAL_"
@@ -350,7 +378,6 @@ class CmemsProductDialog(QDialog):
                     else : 
                         self.comboBox_2.addItem(list_glo[ind])
                     ind+=1
-                #    self.comboBox_2.addItem(str(key))
             else :
                 if str(frame) in key :
                     self.comboBox_2.addItem(str(key))
@@ -397,18 +424,13 @@ class CmemsProductDialog(QDialog):
         self.dict_var=self.getXML(url_base)
         print 'Get XML'
         for key in self.dict_var.keys():
-            print "Variable"
-            print key
             if not str(key).startswith('Automatically'):
-                print "populate var combobox"
                 self.comboBox_4.addItem(str(key))
         ## Add current in the list if u, v exist
-        self.comboBox_4.addItem("Ocean_currents")
 
         variable=str(self.comboBox_4.currentText()) 
         list_area=self.dict_var[str(variable)][2]
         print list_area[0],list_area[1],list_area[2],list_area[3]
-        #list_zone=self.dict_prod[product][dataset][1]
         self.lineEdit.setText(list_area[0]) 
         self.lineEdit_2.setText(list_area[1])
         self.lineEdit_3.setText(list_area[2])
@@ -437,33 +459,20 @@ class CmemsProductDialog(QDialog):
         self.lineEdit_9.setText('20')
         self.lineEdit_10.setText('20')
         self.lineEdit_11.setText('300')
-        ## see all options dir(wms['thetao'])
         formats=self.wms.getOperationByName('GetMap').formatOptions
+        ind=0
         for proj in projections : 
             self.comboBox_9.addItem(str(proj))
-        #long_name=wms[variable].title
+            if str(proj) != "EPSG:4326" : 
+                self.comboBox_9.model().item(ind).setEnabled(False)
+            ind+=1
 
 
     def getXML(self,url_base):
         """ Get XML from WMS adress """
-        mercator_url1="http://nrtcmems.mercator-ocean.fr/thredds/wms/global-analysis-forecast-phys-001-024"
-        mercator_url2="http://nrtcmems.mercator-ocean.fr/thredds/wms/global-analysis-forecast-phys-001-024-2hourly-t-u-v-ssh"
-        mercator_url3="http://rancmems.mercator-ocean.fr/thredds/wms/dataset-global-reanalysis-phy-001-025-ran-fr-glorys2v4-daily"
         version="1.1.1"
         print "Adress %s " %(url_base[0])
         try :
-            ## Cas particulier Mercatorœ
-            ##if url_base[0] == mercator_url1 or url_base[0] == mercator_url2 or url_base[0] == mercator_url3 :
-            ##    print "Mercator case"
-            ##    if 'http_proxy' in os.environ : 
-            ##        del os.environ['http_proxy']
-            ##    if 'https_proxy' in os.environ : 
-            ##        del os.environ['https_proxy']
-            ##else :
-            ##    print "Not internal server"
-            ##    if not "http_proxy" in os.environ : 
-            ##        print "Set the http_proxy variable to pass the proxy"
-            ##        sys.exit(1)
             ## Read xml with urllib2
             url=url_base[0]+'?service=WMS&version='+version+'&request=GetCapabilities'
             request = urllib2.Request(url, headers={"Accept" : "application/xml"})
@@ -478,8 +487,6 @@ class CmemsProductDialog(QDialog):
             layer2 = layer1.findall('Layer')[0]
             layers = layer2.findall('Layer')
             for l in layers:
-                #variable_name=l.find('Title').text
-                # variable_name=l.find('Abstract').text
                 ## Find Variable name
                 variable_name=l.find('Name').text
                 print 'variable %s ' %(variable_name)
@@ -522,8 +529,6 @@ class CmemsProductDialog(QDialog):
         self.comboBox_5.clear()
         self.comboBox_6.clear()
         self.comboBox_7.clear()
-        #self.comboBox_8.clear()
-        #self.comboBox_9.clear()
         # Current combobox values
         product=str(self.comboBox_2.currentText())
         dataset=str(self.comboBox_3.currentText())
@@ -554,9 +559,9 @@ class CmemsProductDialog(QDialog):
         list_prof=self.dict_var[variable][0]
         for value in list_prof : 
             prof=str(value).split()[0]
-            #if  float(prof) < 0 :
-            #    prof=prof.split('-')[1]
             self.comboBox_7.addItem(str(prof))
+        if variable == "sea_water_velocity" :
+           self.checkBox.setEnabled(True)
 
     def load_options(self,default_values):
         class cmemsval(dict):
