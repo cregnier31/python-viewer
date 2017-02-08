@@ -1,0 +1,20 @@
+HYCOM 
+https://hycom.org/dataserver/375-wms
+http://wcs.hycom.org/thredds/catalog.html
+
+NSIDC 
+https://nsidc.org/data/atlas/ogc_services.html
+WMS
+Northern Hemisphere: http://nsidc.org/cgi-bin/atlas_north?service=WMS&request=GetCapabilities&version=1.1.1
+Southern Hemisphere: http://nsidc.org/cgi-bin/atlas_south?service=WMS&request=GetCapabilities&version=1.1.1
+WFS:
+
+Northern Hemisphere: http://nsidc.org/cgi-bin/atlas_north?service=WFS&request=GetCapabilities&version=1.1.0
+Southern Hemisphere: http://nsidc.org/cgi-bin/atlas_south?service=WFS&request=GetCapabilities&version=1.1.0
+WCS:
+
+Northern Hemisphere: http://nsidc.org/cgi-bin/atlas_north?service=WCS&request=GetCapabilities&version=1.1.1
+Southern Hemisphere: http://nsidc.org/cgi-bin/atlas_south?service=WCS&request=GetCapabilities&version=1.1.1
+
+
+

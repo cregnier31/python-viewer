@@ -1,0 +1,5 @@
+## Env canada
+http://geo.weather.gc.ca/geomet/?service=WMS&version=1.1.1&request=GetCapabilities
+## Hycom
+http://wms.hycom.org/thredds/wms/
+
