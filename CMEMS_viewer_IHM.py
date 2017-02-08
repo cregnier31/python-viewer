@@ -10,7 +10,6 @@ from PyQt4.QtCore import pyqtSignal
 import fileinput
 import resource
 
-#from ui_user_interface_dialogs import CmemsProductDialog
 from ui_user_interface_dialogs_plot import CmemsProductDialog
 
 ## Set stack size and virtual memory to unlimited

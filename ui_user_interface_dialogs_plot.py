@@ -213,6 +213,7 @@ class CmemsProductDialog(QDialog):
         QtCore.QObject.connect(self.comboBox_2, QtCore.SIGNAL("currentIndexChanged(int)"),self.opendatasets)
         QtCore.QObject.connect(self.comboBox_3, QtCore.SIGNAL("currentIndexChanged(int)"),self.openvariables)
         QtCore.QObject.connect(self.comboBox_4, QtCore.SIGNAL("currentIndexChanged(int)"),self.opentimeanddepth)
+        QtCore.QObject.connect(self.comboBox_9, QtCore.SIGNAL("currentIndexChanged(int)"),self.changesrs)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def accept(self):
@@ -241,11 +242,14 @@ class CmemsProductDialog(QDialog):
         ll_polar=False
 	if self.checkBox_2.isChecked() == True :
 	   print "Projection arctic"
-           epsg_val="3408"
+           #m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
+           #            urcrnrlon=xmax, llcrnrlat=ymin,resolution='l',epsg=epsg_val)   
+           ##m = Basemap(projection='npstere',boundinglat=ymin,lon_0=0,round=True,resolution='l')   
            m = Basemap(projection='npstere',boundinglat=ymin,lon_0=0,round=True,resolution='l')   
+            #Proj4js.defs["EPSG:3408"] = "+proj=laea +lat_0=90 +lon_0=0 +x_0=0 +y_0=0 +a=6371228 +b=6371228 +units=m +no_defs";
+            #
            ll_polar=True
 	elif self.checkBox_3.isChecked() == True :
-           epsg_val="3409"
 	   print "Projection antarctic"
            m = Basemap(projection='spstere',boundinglat=ymax,lon_0=180,round=True,resolution='l')   
            ll_polar=True
@@ -259,7 +263,6 @@ class CmemsProductDialog(QDialog):
         style='boxfill/'+colorbar
         print input_srs
         print epsg_val
-        # find the x,y values at the corner points.
         p = pyproj.Proj(init="epsg:%s" % epsg_val, preserve_units=True)
         xmin,ymin = p(m.llcrnrlon,m.llcrnrlat)
         xmax,ymax = p(m.urcrnrlon,m.urcrnrlat)
@@ -300,24 +303,29 @@ class CmemsProductDialog(QDialog):
         my_cmap=compute_cmap(file_pal,colorbar)
         cm.register_cmap(name=colorbar, cmap=my_cmap)
         font=10
-        norm = mpl.colors.Normalize(vmin=float(rastermin), vmax=float(rastermax), clip=True) 
+        norm = mpl.colors.Normalize(vmin=float(rastermin), vmax=float(rastermax), clip=False) 
+        parallels=np.round(np.arange(ymin,ymax+xparallels/2,xparallels))
+        meridians = np.round(np.arange(xmin,xmax+ymeridians/2,ymeridians))
         # Plot figure 
         plt.figure(figsize=(20,12))
-        m.drawcoastlines(color='lightgrey',linewidth=0.25)
-        m.fillcontinents(color='lightgrey')
+        if epsg_val == '4326' :
+            m.drawcoastlines(color='lightgrey',linewidth=0.25)
+            m.fillcontinents(color='lightgrey')
+            m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
+            m.drawparallels(parallels,labels=[1,0,0,0],fontsize=10,linewidth=0.2)
+
+        elif ll_polar == True : 
+            #m.drawcoastlines(linewidth=0.5)
+            m.drawparallels(parallels,labels=[1,0,0,0],fontsize=10,linewidth=0.2)
+            m.drawmeridians(meridians[:-1],labels=[1,1,1,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
+        ## Plot the image
         cs=m.imshow(image,origin='upper',alpha=1,cmap=(cm.get_cmap(colorbar,int(nb_colors))),norm=norm)
+        ## Add colorbar
         cb=plt.colorbar(cs,orientation='vertical',format='%4.2f',shrink=0.7)
         cb.ax.set_ylabel(ylabel, fontsize=int(font)+4)
         cl=plt.getp(cb.ax, 'ymajorticklabels')
         plt.setp(cl, fontsize=font)
-        parallels=np.round(np.arange(ymin,ymax+xparallels/2,xparallels))
-        m.drawparallels(parallels,labels=[1,0,0,0],fontsize=10,linewidth=0.2)
-        meridians = np.round(np.arange(xmin,xmax+ymeridians/2,ymeridians))
-        if ll_polar : 
-           print "meridians"
-           #m.drawmeridians(meridians[:-1],labels=[1,1,1,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
-        else :
-           m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
+
         plt.title(title,fontsize=font+4,y=1.05)
         plt.savefig('images/'+product+"_"+long_name+"_"+date_val+"_basemap.png",dpi=300,bbox_inches='tight')
         plt.show()
@@ -359,7 +367,6 @@ class CmemsProductDialog(QDialog):
         self.checkBox_2.setText("Arc_proj")
         self.checkBox_3.setText("Ant_proj")
         print "add text ok"
-      #  list_area=['GLOBAL','ARCTIC','BAL','MED','IBI','NWS']
         list_area=['ARCTIC','BAL','GLOBAL','IBI','MED','NWS']
         for area in list_area : 
             self.comboBox.addItem(str(area))
@@ -367,6 +374,15 @@ class CmemsProductDialog(QDialog):
         self.comboBox_2.setEnabled(False)
         self.comboBox_3.setEnabled(False)
         print "enable OK"
+
+    def changesrs(self) :
+        input_srs=str(self.comboBox_9.currentText())
+        if input_srs == "EPSG:3408" : 
+            self.checkBox_2.setChecked(True)
+            self.checkBox_3.setChecked(False)
+        elif input_srs == "EPSG:3409" :
+            self.checkBox_2.setChecked(False)
+            self.checkBox_3.setChecked(True)
 
     def openproducts(self):
         """Populate combobox with products """

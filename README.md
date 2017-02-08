@@ -2,11 +2,12 @@
 Viewer for netcdf dataset
 First version of a WMS viewer for CMEMS products 
 
-Install Dependencies :
+Install Dependencies 
 ----------------------
 ### Conda install ###
 conda install -c conda-forge --file requirements.txt 
 
+### Other install ###
 If you don't have conda you need to have the following modules: 
 * matplotlib>=2.0.0
 * numpy

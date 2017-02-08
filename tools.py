@@ -6,10 +6,8 @@ def compute_cmap(file,colormap):
     '''Read thredds colormaps_<name>.pal file and compute cmap'''
 
     LinL=np.loadtxt(file)
-    print LinL[:,:]
     if np.max(LinL[:,:]) > 1 :
         LinL[:,:]=LinL[:,:]/255
-    print LinL[:,:]
     b3=LinL[:,2]
     b2=LinL[:,2]
     b1=np.linspace(0,1,len(b2))
