@@ -10,7 +10,7 @@ import pyproj
 from datetime import datetime
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.image import imread
@@ -64,6 +64,8 @@ def getXML_new(url_base):
         layer1 = cap.findall('Layer')[0]
         layer2 = layer1.findall('Layer')
         list_product=[]
+        list_layer=[]
+	list_style=[]
         for l in layer2 :
             print l.find('Title').text
             prod=l.find('Title').text
@@ -72,100 +74,22 @@ def getXML_new(url_base):
                 print 'Oceano OK'
                 layer3 = l.findall('Layer')[0]
                 layer4=layer3.findall('Layer')
-                for l2 in layer4: 
-                    print l2.find('Name').text
-                    print "--------"
-                   ## layer4 = l2.findall('Layer')[0]
-                   ## for l3 in layer4 :
-                   ##    print "========================"
-                   ##    print layer3
-                   ##    print "========================"
-                ##    prod2=l2.find('Name').text
-                ##    print prod2
-        print list_product
-        sys.exit(1) 
-##        layer1 = cap.findall('Layer')[0]
-##        layer2 = layer1.findall('Layer')[0]
-##        layer3 = layer2.findall('Layer')[0]
-##        layer4 = layer3.findall('Layer')
-##        for l in layer4 :
-##           # title=l.find('Title').text
-##            print l.find('Name').text
-##
-        sys.exit(1)
-        ##layer2 = layer1.findall('Layer')
-        ##for l in layer2 :
-        ##    title=l.find('Title').text
-        ##    print title
-
-        ##for l in layer1 :
-        ##    title=l.find('Title').text
-        ##    title=l.find('SRS').text
-        ##    print title
-        ##    
-        sys.exit(1)
-
-
-        layer2 = layer1.findall('Layer')[0]
-        for l in layer2 :
-            print l.text
-        sys.exit(1)
-        layer3 = layer2.findall('Layer')[0]
-        sys.exit(1)
-        for layer in layer1 :
-            print layer
-           # title=layer.findall('Title').text
-           # print title
-            print '---------------------'
-        sys.exit(1)
-        layer2 = layer1.findall('Title')[0]
-        
-        print layer2.text
-        for l in layer2 : 
-            title=l.find('Title').text
-            print title
-        sys.exit(1)
-        #layer2 = layer1.findall('Layer')[0]
-        layers = layer2.findall('Layer')
-        for l in layers:
-            ## Find Variable name
-            variable_name=l.findall('Name')
-            for name in  variable_name :
-                print name
-            sys.exit(1)
-            print 'variable %s ' %(variable_name)
-            ## Find are of product
-            list_area=[]
-            box=l.find('BoundingBox')
-            lonmin=box.attrib['minx']
-            list_area.append(lonmin)
-            lonmax=box.attrib['maxx']
-            list_area.append(lonmax)
-            latmin=box.attrib['miny']
-            list_area.append(latmin)
-            latmax=box.attrib['maxy']
-            list_area.append(latmax)
-            ## Find time and prof
-            dims=l.findall('Extent')
-            list_prof=[]
-            list_time=[]
-            list_tot=[]
-            for dim in dims : 
-                if dim.attrib['name'] == 'elevation' :
-                    list_prof=str(dim.text).split(',')
-                if dim.attrib['name'] == 'time' :
-                    list_time=str(dim.text).split(',')
-            if  list_prof == [] : 
-                list_prof.append('0')
-            list_tot.append(list_prof)
-            list_tot.append(list_time)
-            list_tot.append(list_area)
-            dict_var[str(variable_name)]=list_tot
+		for l2 in layer4 :
+		   print l2.find('Name').text
+                   layer_name=l2.find('Name').text
+                   list_layer.append(layer_name)
+                   layer5=l2.findall('Style')
+                   for l3 in layer5:
+                       style_name=l3.find('Name').text
+                       print l3.find('Name').text
+                       print l3.find('Title').text
+                       list_style.append(style_name)
+                       print "--------"
     except:
         raise
         print "Error in WMS procedure"
         sys.exit(1)
-    return dict_var
+    return list_layer,list_style
 
 def getXML(url_base):
     version="1.1.1"
@@ -212,30 +136,7 @@ def getXML2(url_base):
             lonmax=box.attrib['maxx']
             latmin=box.attrib['miny']
             latmax=box.attrib['maxy']
-                #if var_box.attrib == 'minx' :
-                #   lonmin=str(dim.text).split(',')
-                #if dim.attrib['name'] == 'maxx' :
-                #   latmin=str(dim.text).split(',')
-                #if dim.attrib['name'] == 'miny' :
-                #   lonmax=str(dim.text).split(',')
-                #if dim.attrib['name'] == 'maxy' :
-                #   latmax=str(dim.text).split(',')
-            #for child in box:
-            #    print child
             print lonmin,lonmax,latmin,latmax
-            #dimensions=l.findall('LatLonBoundingBox')
-            #print dimensions[1].text
-            #for dim in dimensions : 
-            #    print dim.text
-                #if dim.attrib['name'] == 'minx' :
-                #   lonmin=str(dim.text).split(',')
-                #if dim.attrib['name'] == 'maxx' :
-                #   latmin=str(dim.text).split(',')
-                #if dim.attrib['name'] == 'miny' :
-                #   lonmax=str(dim.text).split(',')
-                #if dim.attrib['name'] == 'maxy' :
-                #   latmax=str(dim.text).split(',')
-            #print lonmin,lonmax,latmin,latmax
             dims=l.findall('Extent')
             list_prof=[]
             list_time=[]
@@ -290,79 +191,34 @@ try:
     from owslib.wms import WebMapService
 except ImportError:
     raise ImportError('OWSLib required to use wmsimage method')
-##import urllib2, io
-### find the x,y values at the corner points.
-###p = pyproj.Proj(init="epsg:%s" % self.epsg, preserve_units=True)
-### ypixels not given, find by scaling xpixels by the map aspect ratio.
-##print adress
 adress="http://geo.weather.gc.ca/geomet/"
-dict=getXML_new(adress)
-##print dict
-sys.exit(1)
+layer,style=getXML_new(adress)
+print layer,style
 wms = WebMapService(adress)
 formats=wms.getOperationByName('GetMap').formatOptions
-for form in formats :
-    print form.split('/')[1]
-print 'id: %s, version: %s' %\
-(wms.identification.type,wms.identification.version)
-print 'title: %s, abstract: %s' %\
-(wms.identification.title,wms.identification.abstract)
-print 'available layers:'
-layer_list=list(wms.contents)
-print layer_list
-sys.exit(1)
-#print 'projection options:'
-print wms['thetao'].crsOptions
-options=wms['thetao'].crsOptions
-print options
-## see all options dir(wms['thetao'])
-print "Styles"
-
-styles=wms['thetao'].styles
-print styles
-print dir(wms['thetao'])
-print " See all attributs" 
-print wms['thetao'].defaulttimeposition
+product='GIOPS'
+#for form in formats :
+#    print form.split('/')[1]
+#print 'id: %s, version: %s' %\
+#(wms.identification.type,wms.identification.version)
+#print 'title: %s, abstract: %s' %\
+#(wms.identification.title,wms.identification.abstract)
+#print 'available layers:'
+#layer_list=list(wms.contents)
 xmin=-180
 xmax=180
 ymin=-90
 ymax=90
-#xmin=-20
-#xmax=100
-#ymin=-20
-#ymax=40
 xpixels=1000
 aspect=0.5
 projection="mercator"
-#if projection == 'cyl':
-#    aspect = (urcrnrlat-llcrnrlat)/(urcrnrlon-llcrnrlon)
-#else:
-#    aspect = (ymax-ymin)/(xmax-xmin)
-#print aspect
 ypixels = int(aspect*xpixels)
 print ypixels
-format="jpeg"
 format="png"
-#plt.figure(figsize=(19.2,11.5))
 plt.figure(figsize=(20,12))
-variable='thetao'
-long_name=wms[variable].title
-print options[2]
-#choose_style='boxfill/redblue'
-choose_style='boxfill/redblue'
-choose_style='boxfill/ncview'
-if choose_style == 'boxfill/redblue' : 
-    valuemap="bwr"
-elif choose_style == 'boxfill/rainbow' :
-    valuemap="jet"
-elif choose_style == 'boxfill/jet' :
-    valuemap="jet"
-elif choose_style == 'boxfill/ncview' :
-    valuemap="default"
-
-#choose_style='boxfill/jet'
-choose_legend=styles[choose_style]['legend']
-print choose_legend
+ind_var=4
+variable=layer[ind_var]
+choose_style=style[ind_var]
 valmin='-5'
 valmax='35'
 numbercolor='20'
@@ -373,49 +229,27 @@ print intervalDiff
 rastermin=int(valmin)
 rastermax=int(valmax)
 value=rastermin
+proj="EPSG:4326"
 norm = matplotlib.colors.Normalize(vmin=rastermin, vmax=rastermax, clip=True)
-items=[]
-item_ind=[]
-for class_val in range(0, nb_values):
-    val=float(class_val)/float(nb_values)
-    items.append(float('%.2f'%(value)))
-    item_ind.append(val)
-    value=value+intervalDiff
-print items
 rangeval="'"+str(valmin)+','+str(valmax)+"'"
-time_change="2017-01-20"
+time_change="2017-02-18"
 norm_func = mpl.colors.Normalize
 norm = norm_func(vmin=rastermin, vmax=rastermax)
-#cmap = cm.jet
-#cmap = matplotlib.cm.get_cmap('Spectral')
-#print wms.getOperationByName('GetMap').formatOptions
-print [choose_style]
-print options[2]
-m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
-                                  urcrnrlon=xmax, llcrnrlat=ymin,resolution='i',epsg=4326)
-print m.aspect
-sys.exit(1)
 img = wms.getmap(layers=[variable],service='wms',bbox=(xmin,ymin,xmax,ymax),
                  size=(xpixels,ypixels),
                  format='image/%s'%format,
-                 elevation='-0.49402499198913574',
-                 srs=options[2],
+                 #elevation='-0.49402499198913574',
+                 srs=proj,
                  time=time_change+'T12:00:00.000Z',
                  colorscalerange=valmin+','+valmax,numcolorbands=numbercolor,logscale=False,
-                 styles=[choose_style],legend=choose_legend)
-                 #colorscalerange='-5,35',numcolorbands='100',logscale=False,
-colormap=choose_style.split('/')[1]
-files=glob.glob('./statics/colormaps_'+valuemap+'.h')
-files.sort()
-cmap=gen_cmap(files[0])
-cm.register_cmap(name='ncview', cmap=cmap)
-#,N=int(numbercolor))
+                 styles=[choose_style])
 
 image=imread(io.BytesIO(img.read()))
-lt.imshow(image,cmap=(cm.get_cmap('ncview',int(numbercolor))))
-lt.colorbar()
-lt.savefig(product+"_"+long_name+"_"+time_change+"_new3.png",dpi=300,bbox_inches='tight')
-ys.exit(1)
+plt.imshow(image) #,cmap=(cm.get_cmap('ncview',int(numbercolor))))
+plt.colorbar()
+plt.show()
+plt.savefig(product+"_"+variable+"_"+time_change+".png",dpi=300,bbox_inches='tight')
+sys.exit(1)
 # print image
 parallels=20
 meridians=20
