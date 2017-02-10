@@ -21,31 +21,6 @@ import matplotlib.cm as cm
 import matplotlib.image as mpimg
 import pylab as pl
 
-def getWMS(url_base):
-    serverurl=url_base[0]
-    version="1.1.1"
-    url=url_base[0]+'?service=WMS&version='+version+'&request=GetCapabilities'
-    lon_min = -118.8; lon_max = -108.6
-    lat_min = 22.15;  lat_max = 32.34
-    m = Basemap(llcrnrlon=lon_min, urcrnrlat=lat_max,
-                        urcrnrlon=lon_max, llcrnrlat=lat_min,resolution='i',epsg=4326)
-    m.wmsimage(serverurl,xpixels=500,verbose=True,
-               layers=['thetao'],
-               elevation='-0.49402499198913574',
-               colorscalerange='271.2,308',numcolorbands='20',logscale=False,
-               styles=['boxfill/ferret'])
-              # styles=['boxfill/rainbow'])
-               #time=datetime.utcnow().strftime('%Y-%m-%dT12:00:00.000Z'),
-    plt.figure()
-    m.drawcoastlines(linewidth=0.25)
-    parallels = np.arange(20,36,2.)
-    a=m.drawparallels(parallels,labels=[1,0,0,0],fontsize=10)
-    meridians = np.arange(-120,-100,2.)
-    b=m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10)
-
-
-
-
 def getXML_new(url_base):
     """ Get XML from WMS adress """
     version="1.1.1"
@@ -66,6 +41,7 @@ def getXML_new(url_base):
         list_product=[]
         list_layer=[]
 	list_style=[]
+        list_name=[]
         for l in layer2 :
             print l.find('Title').text
             prod=l.find('Title').text
@@ -74,8 +50,8 @@ def getXML_new(url_base):
                 print 'Oceano OK'
                 layer3 = l.findall('Layer')[0]
                 layer4=layer3.findall('Layer')
-		for l2 in layer4 :
-		   print l2.find('Name').text
+                for l2 in layer4 :
+                   print l2.find('Name').text
                    layer_name=l2.find('Name').text
                    list_layer.append(layer_name)
                    layer5=l2.findall('Style')
@@ -84,74 +60,13 @@ def getXML_new(url_base):
                        print l3.find('Name').text
                        print l3.find('Title').text
                        list_style.append(style_name)
+                       list_name.append(l3.find('Title').text)
                        print "--------"
     except:
         raise
         print "Error in WMS procedure"
         sys.exit(1)
-    return list_layer,list_style
-
-def getXML(url_base):
-    version="1.1.1"
-    url=url_base+'?service=WMS&version='+version+'&request=GetCapabilities'
-    print " URL  %s " %(url)
-    try :
-        u=urllib2.urlopen(url,timeout=60)
-        value=u.read()
-        tree= ET.fromstring( value )
-        ll_request=True
-    except:
-        ll_request=False 
-        print "Probleme with WMS request"
-
-    return ll_request
-
-
-
-def getXML2(url_base):
-        ## Read xml with urllib2
-        version="1.1.1"
-        url=url_base+'?service=WMS&version='+version+'&request=GetCapabilities'
-        request = urllib2.Request(url, headers={"Accept" : "application/xml"})
-        u = urllib2.urlopen(request)
-        u=urllib2.urlopen(url)
-        print url
-        value=u.read()
-        tree= ET.fromstring( value )
-        #print ET.dump(tree)
-        dict_var={}
-        cap = tree.findall('Capability')[0]
-        layer1 = cap.findall('Layer')[0]
-        layer2 = layer1.findall('Layer')[0]
-        layers = layer2.findall('Layer')
-        for l in layers:
-            #variable_name=l.find('Title').text
-            variable_name=l.find('Name').text
-            Title=l.find('Title').text
-            #print "Title %s " %(Title)
-            variable_name=l.find('Abstract').text
-            #print 'variable %s ' %(variable_name)
-            box=l.find('BoundingBox')
-            lonmin=box.attrib['minx']
-            lonmax=box.attrib['maxx']
-            latmin=box.attrib['miny']
-            latmax=box.attrib['maxy']
-            print lonmin,lonmax,latmin,latmax
-            dims=l.findall('Extent')
-            list_prof=[]
-            list_time=[]
-            list_tot=[]
-            for dim in dims : 
-                if dim.attrib['name'] == 'elevation' :
-                    list_prof=str(dim.text).split(',')
-                if dim.attrib['name'] == 'time' :
-                    list_time=str(dim.text).split(',')
-            if  list_prof == [] : 
-                list_prof.append('0')
-            list_tot.append(list_prof)
-            list_tot.append(list_time)
-            dict_var[str(variable_name)]=list_tot
-            return dict_var
+    return list_layer,list_style,list_name
 
 def read_file(f):
   '''Read ncview colormaps_<name>.h file'''
@@ -192,7 +107,7 @@ try:
 except ImportError:
     raise ImportError('OWSLib required to use wmsimage method')
 adress="http://geo.weather.gc.ca/geomet/"
-layer,style=getXML_new(adress)
+layer,style,list_name=getXML_new(adress)
 print layer,style
 wms = WebMapService(adress)
 formats=wms.getOperationByName('GetMap').formatOptions
@@ -216,11 +131,12 @@ ypixels = int(aspect*xpixels)
 print ypixels
 format="png"
 plt.figure(figsize=(20,12))
-ind_var=4
+ind_var=5
 variable=layer[ind_var]
 choose_style=style[ind_var]
-valmin='-5'
-valmax='35'
+long_name=list_name[ind_var]
+valmin='-2'
+valmax='30'
 numbercolor='20'
 nb_values=int(numbercolor)
 #mapper = cm.ScalarMappable(norm=norm, cmap=valuemap)
@@ -235,6 +151,11 @@ rangeval="'"+str(valmin)+','+str(valmax)+"'"
 time_change="2017-02-18"
 norm_func = mpl.colors.Normalize
 norm = norm_func(vmin=rastermin, vmax=rastermax)
+m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
+            urcrnrlon=xmax, llcrnrlat=ymin,resolution='i',epsg=4326)
+print "Create basemap"
+#m = Basemap(projection='npstere',boundinglat=ymin,lon_0=0,round=True,resolution='l')   
+print "Get map"
 img = wms.getmap(layers=[variable],service='wms',bbox=(xmin,ymin,xmax,ymax),
                  size=(xpixels,ypixels),
                  format='image/%s'%format,
@@ -244,24 +165,31 @@ img = wms.getmap(layers=[variable],service='wms',bbox=(xmin,ymin,xmax,ymax),
                  colorscalerange=valmin+','+valmax,numcolorbands=numbercolor,logscale=False,
                  styles=[choose_style])
 
+print "Get map ok"
 image=imread(io.BytesIO(img.read()))
-plt.imshow(image) #,cmap=(cm.get_cmap('ncview',int(numbercolor))))
-plt.colorbar()
-plt.show()
-plt.savefig(product+"_"+variable+"_"+time_change+".png",dpi=300,bbox_inches='tight')
-sys.exit(1)
+#plt.imshow(image) #,cmap=(cm.get_cmap('ncview',int(numbercolor))))
+#plt.colorbar()
+#plt.show()
+#plt.savefig(product+"_"+variable+"_"+time_change+".png",dpi=300,bbox_inches='tight')
+#sys.exit(1)
 # print image
-parallels=20
-meridians=20
-ont=16
-label=wms[variable].abstract
+font=16
 title=product+" - "+long_name+" "+" - "+time_change
 m.drawcoastlines(color='lightgrey',linewidth=0.25)
 m.fillcontinents(color='lightgrey')
-m.imshow(image,origin='upper',alpha=1,cmap=cmap,norm=norm)
-lt.colorbar()
-lt.show()
-ys.exit(1)
+cs=m.imshow(image,origin='upper',alpha=1,norm=norm)
+cb=plt.colorbar(cs,orientation='vertical',format='%4.2f',pad=0.1,shrink=0.7)
+cl=plt.getp(cb.ax, 'ymajorticklabels')
+plt.setp(cl, fontsize=font)
+xparallels=20
+ymeridians=20
+parallels=np.round(np.arange(ymin,ymax+xparallels/2,xparallels))
+m.drawparallels(parallels,labels=[1,0,0,0],fontsize=10,linewidth=0.2)
+meridians = np.round(np.arange(xmin,xmax+ymeridians/2,ymeridians))
+m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,linewidth=0.2,dashes=[1, 5])
+plt.title(title,fontsize=font,y=1.05)
+plt.show()
+sys.exit(1)
 cs=m.imshow(image,origin='upper',alpha=1,cmap=(cm.get_cmap(valuemap,int(numbercolor))),norm=norm)
 m.imshow(image,origin='upper',alpha=1)
 cb=plt.colorbar(cs,orientation='vertical',format='%4.2f',pad=0.1,shrink=0.7)
