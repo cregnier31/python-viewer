@@ -19,3 +19,5 @@ Southern Hemisphere: http://nsidc.org/cgi-bin/atlas_south?service=WCS&request=Ge
 ##  OceanData Thredds
 http://navigator.oceansdata.ca/thredds/catalog.html
 
+## Canada
+http://geo.weather.gc.ca/geomet/?&SERVICE=WMS
