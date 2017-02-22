@@ -16,5 +16,6 @@ WCS:
 Northern Hemisphere: http://nsidc.org/cgi-bin/atlas_north?service=WCS&request=GetCapabilities&version=1.1.1
 Southern Hemisphere: http://nsidc.org/cgi-bin/atlas_south?service=WCS&request=GetCapabilities&version=1.1.1
 
-
+##  OceanData Thredds
+http://navigator.oceansdata.ca/thredds/catalog.html
 
