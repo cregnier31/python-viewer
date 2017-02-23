@@ -710,7 +710,7 @@ class Ui_THREDDSViewer(object):
         self.retranslateUi(THREDDSViewer)
         self.tabWidget_Multi_WMS.setCurrentIndex(0)
         self.ExtractWidget_2.setCurrentIndex(0)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(THREDDSViewer)
 
     def retranslateUi(self, THREDDSViewer):
