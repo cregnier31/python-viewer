@@ -29,6 +29,11 @@ from XmlParser import *
 import time
 import logging
 from libvisor import VisorController
+#from libvisor.animation.AnimationFrame import AnimationFrame
+from libvisor.persistence import ServerDataPersistenceManager
+#from libvisor.utilities.LayerLegendGroupifier import LayerGroupifier
+from libvisor.providersmanagers.BoundingBoxInfo import BoundingBox
+
 ## Set stack size and virtual memory to unlimited
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 resource.setrlimit(resource.RLIMIT_AS, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
@@ -500,6 +505,30 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         plt.title(title,fontsize=font+4,y=1.05)
         plt.savefig('images/'+product+"_"+long_name+"_"+date_val+"_basemap.png",dpi=300,bbox_inches='tight')
         plt.show()
+   
+    def GetWMSImage(self,url_base,variable,xpixels,ypixels,epsg_val,xmin,ymin,xmax,ymax,depth,input_srs,date_val,rastermin,
+            rastermax,nb_colors,style):
+        self.logger.info("GetWMSImage")
+        self.wms = WebMapService(url_base[0])
+        m = Basemap(llcrnrlon=xmin, urcrnrlat=ymax,
+                    urcrnrlon=xmax, llcrnrlat=ymin,resolution='i',epsg=epsg_val)   
+        p = pyproj.Proj(init="epsg:%s" % epsg_val, preserve_units=True)
+        xmin,ymin = p(m.llcrnrlon,m.llcrnrlat)
+        xmax,ymax = p(m.urcrnrlon,m.urcrnrlat)
+        if epsg_val == '4326' :
+            xmin = (180./np.pi)*xmin; xmax = (180./np.pi)*xmax
+            ymin = (180./np.pi)*ymin; ymax = (180./np.pi)*ymax
+        self.logger.info("Bounding Box %i %i %i %i " %(xmin,xmax,ymin,ymax))
+        img = self.wms.getmap(layers=[variable],service='wms',bbox=(xmin,ymin,xmax,ymax),
+                                  size=(int(xpixels),ypixels),
+                                  format='image/png',
+                                  elevation=depth,
+                                  srs=input_srs,
+                                  time=date_val,
+                                  colorscalerange=rastermin+','+rastermax,numcolorbands=nb_colors,logscale=False,
+                                  styles=[style])
+        image=imread(io.BytesIO(img.read()),format='png')
+        return img 
 
     def _onbuttonMotuRequest(self): 
 
@@ -755,6 +784,7 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
                 self.combo_wcs_coverage.addItem("No data available.")
             #WMS Data update
             self.currentWMSMapInfo = self.controller.getWMSMapInfo(self.currentMap)
+            print self.currentWMSMapInfo
             if self.currentWMSMapInfo is not None:
                 for l in self.currentWMSMapInfo.getLayers():
                     self.combo_wms_layer.addItem(l.getName())
@@ -925,6 +955,7 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
                     layerSelectedObject =  [ x for x in self.currentWMSMapInfo.getLayers()
                                             if x.getName() == str(self.combo_wms_layer.currentText())]
 
+                    self.logger.info("Longeur selected layer : %i"  %(len(layerSelectedObject)))
                 #We retrieve the bounding box CRS information from the
                 #requested coverage, and get the actual box values
                 #from the UI.
@@ -934,11 +965,14 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
                         south = float(self.WMS_southBound.text())
                         east = float(self.WMS_eastBound.text())
                         west = float(self.WMS_westBound.text())
+                        self.logger.info("Inside selected %f %f %f %f" %(north,south,east,west))
                     except ValueError:
                         self.postCriticalErrorToUser("Bounding box values were not valid."
                         +"\nCheck only decimal numbers are used\n(example: 12.44)")
                         return
-
+                    self.logger.info(layerSelectedObject[0])
+                    self.logger.info(type(layerSelectedObject[0]))
+                    self.logger.info(layerSelectedObject[0].getBoundingBoxInfo())
                     BBinfo = layerSelectedObject[0].getBoundingBoxInfo()
                     boundingBoxToDownload = BoundingBox()
                     boundingBoxToDownload.setCRS(BBinfo.getCRS())
@@ -946,12 +980,39 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
                     boundingBoxToDownload.setWest(west)
                     boundingBoxToDownload.setNorth(north)
                     boundingBoxToDownload.setSouth(south)
-                    self.controller.asyncFetchWMSImageFile(self.currentMap,
-                                                            self.combo_wms_layer.currentText(),
-                                                            style,
-                                                            self.wmsAvailableTimes[selectedBeginTimeIndex
-                                                                                   :selectedFinishTimeIndex],
-                                                            boundingBox = boundingBoxToDownload)
+                    self.logger.info(self.currentMap)
+                    self.logger.info(self.combo_wms_layer.currentText())
+                    self.logger.info(style)
+                    self.logger.info(boundingBoxToDownload)
+                    variable=self.combo_wms_layer.currentText()
+                    xpixels=800
+                    aspect=0.5
+                    ypixels=xpixels*aspect
+                    xmin=west
+                    xmax=east
+                    ymin=south
+                    ymax=north
+                    input_srs=BBinfo.getCRS()
+                    nb_colors=200
+                    depth=0
+                    colorbar=str(self.combo_wms_style_palette.currentText())
+                    #input_srs=str(self.combo_proj.currentText())      
+                    input_srs="EPSG:4326"
+                    epsg_val=input_srs.split(':')[1]
+                    rastermin=0
+                    rastermax=1
+                    date_val=self.combo_wms_time.currentText()
+                    self.logger.info("Launch get WMS")
+                    self.GetWMSImage(variable,xpixels,ypixels,epsg_val,xmin,ymin,xmax,ymax,depth,input_srs,date_val,rastermin,
+                                                rastermax,nb_colors,style)
+                    self.logger.info("Get WMS ok")
+
+                    ##self.controller.asyncFetchWMSImageFile(self.currentMap,
+                    ##                                        self.combo_wms_layer.currentText(),
+                    ##                                        style,
+                    ##                                        self.wmsAvailableTimes[selectedBeginTimeIndex
+                    ##                                                               :selectedFinishTimeIndex],
+                    ##                                        boundingBox = boundingBoxToDownload)
             except Exception as exc:
                 print(exc)
                 self.postInformationMessageToUser("There was an error retrieving the WMS data.")
