@@ -722,7 +722,7 @@ class Ui_THREDDSViewer(object):
         self.label_4.setText(_translate("THREDDSViewer", "Plot parameters :", None))
         self.label_depth.setText(_translate("THREDDSViewer", "Choose Depth:", None))
         self.label_style.setText(_translate("THREDDSViewer", "Choose Style :", None))
-        self.WMSLabelTimeRange_2.setText(_translate("THREDDSViewer", "Time range to download:", None))
+        self.WMSLabelTimeRange_2.setText(_translate("THREDDSViewer", "Time range to plot:", None))
         self.combo_wms_time_first_h.setToolTip(_translate("THREDDSViewer", "Last time value to download for this layer\n"
 "(If set, will download all the layers between the first and last times)", None))
         self.label_2.setText(_translate("THREDDSViewer", "Bounding Box:", None))
