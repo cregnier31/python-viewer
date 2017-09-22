@@ -10,6 +10,7 @@ from PyQt4.QtGui import QMessageBox, QStatusBar
 import sys,os,cPickle,io,urllib2
 import numpy as np
 import xml.etree.ElementTree as ET
+sys.path.append('/home/modules/versions/64/centos7/matplotlib/matplotlib-2.0.0_gnu4.8.2/lib64/python2.7/site-packages/')
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.basemap import pyproj
 import matplotlib.pyplot as plt
@@ -95,6 +96,8 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         self.wcsAvailableTimes = []
         self.wmsAvailableTimes = []
         self.firstRunThisSession = True
+        self.checkBox_arc.setChecked(False)
+        self.checkBox_ant.setChecked(False)
 
     def initUX(self,parent):
 
@@ -112,7 +115,7 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         self.dict_var={}
         f = file(filename, 'r')
         self.dict_prod=cPickle.load(f)
-        self.logger.info("Load catalaog for UX ok")
+        self.logger.info("Load catalog for UX ok")
 
     def initProxy(self,parent):
 
@@ -359,11 +362,12 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         print dataset
         print "--------------------"
         print self.dict_prod[product][dataset]
-
+        print "--------------------"
         resol=self.dict_prod[product][dataset][7][0]
-
         list_time=self.dict_var[str(variable)][1]
-        if "daily" in str(resol) :
+        print resol
+        print "-------------------"
+        if "daily" in str(resol) or "weekly" in str(resol) :
             self.logger.info("Daily variable")
             for value in list_time:
                 day=str(value).split()[0][:-13]
@@ -535,12 +539,19 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         """ Motu request with input params """
 
         self.logger.info("launch motuclient request")
+        area=str(self.combo_area_list.currentText())
         day1=str(self.combo_wms_time_first_d_2.currentText())
         hour1=str(self.combo_wms_time_first_h_2.currentText())
         day2=str(self.combo_wms_time_last_d_2.currentText())
         hour2=str(self.combo_wms_time_last_h_2.currentText())
-        date_min=day1.split('T')[0]+' '+hour1.split('0Z')[0]
-        date_max=day2.split('T')[0]+' '+hour2.split('0Z')[0]
+        if area == "ARCTIC" :
+            hour1_tmp=var.split(':')[0]+":"+var.split(':')[1]
+
+            date_min=day1+hour1.split('0Z')[0]
+            date_max=day2+hour2.split('0Z')[0]
+        else :
+            date_min=day1.split('T')[0]+' '+hour1.split('0Z')[0]
+            date_max=day2.split('T')[0]+' '+hour2.split('0Z')[0]
         depth_min=str(self.combo_wms_layer_depth_2.currentText()).split('-')[1]
         depth_max=str(self.combo_wms_layer_depth_max_2.currentText()).split('-')[1]
         proxy_server=str(self.proxyserver)
@@ -556,9 +567,11 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         lat_min=float(self.lat_WMS_southBound_2.text())
         lat_max=float(self.lat_WMS_northBound_2.text())
         id_product=dataset
+        print "---------------------------"
+        self.dict_prod[product][dataset]
+        print "---------------------------"
         id_service=str(self.dict_prod[product][dataset][8][0])
         dir_out=self.tmp
-        #dir_out="/homelocal-px/px-137/sauvegarde/cregnier/tmp/"
         motu=str(self.dict_prod[product][dataset][2][0])
         date1=date_min.replace('-','')
         date1=date1.replace(':','')
