@@ -10,16 +10,18 @@ from PyQt4.QtGui import QMessageBox, QStatusBar
 import sys,os,cPickle,io,urllib2
 import numpy as np
 import xml.etree.ElementTree as ET
-sys.path.append('/home/modules/versions/64/centos7/matplotlib/matplotlib-2.0.0_gnu4.8.2/lib64/python2.7/site-packages/')
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.basemap import pyproj
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.image import imread
 import numpy as np 
 import matplotlib as mpl
 import matplotlib.cm as cm
 from tools import *
-from motuclient import *
+#from motuclient import motuclient as mt
+from motuclientnew import motuclient as mt
 import owslib
 #from THREDDS_Explorer_extract_WMS_dockwidget_base import Ui_THREDDSViewer
 from THREDDS_Explorer_extract_Multi_WMS_dockwidget_base import Ui_THREDDSViewer
@@ -585,7 +587,7 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
                           'describe': None, 'auth_mode': 'cas', 'motu': motu,'block_size': 65536, 'log_level': 30, 'out_dir': dir_out,\
                           'socket_timeout': None,'sync': None,  'proxy_server': proxy_server,\
                           'proxy_user': proxy_user,'proxy_pwd': proxy_pass, 'user': cmems_user, 'pwd': cmems_pass,\
-                          'variable':[variable],'product_id': id_product,'service_id': id_service,'user_agent': None,'out_name': outputname}
+                          'variable':[variable],'product_id': id_product,'service_id': id_service,'user_agent': None,'out_name': outputname, 'outputWritten': 'netcdf','size' : '','console_mode': ''}
         self.logger.info("=======================================")
         self.logger.info("Options")
         self.logger.info(default_values)
@@ -593,7 +595,7 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
         _opts = self.load_options(default_values)
         try :
             tic = time.time()
-            motu_api.execute_request(_opts)
+            mt.motu_api.execute_request(_opts)
             toc = time.time()
             self.logger.info("| Motu request Ok %6d sec Elapsed for Motu request %f | " %(toc-tic))
         except Exception, e:
@@ -605,7 +607,7 @@ class THREDDSViewer(QtGui.QDockWidget,Ui_THREDDSViewer):
             if hasattr(e, 'read'):
                 self.logger.error(" . detail:\n%s", e.read())
         self.logger.info("Launch ncview")
-        os.system("/home/modules/versions/64/centos7/ncview/ncview-2.1.1_gnu4.8.2/bin/ncview "+dir_out+outputname)
+        os.system("/bin/ncview "+dir_out+outputname)
 
     ## Function from ThreddViewer pluggin
     def toggleAnimationMenu(self):
